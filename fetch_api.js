@@ -107,6 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
       await PostUserData(URL, data);
       users = await GetAllUsers(URL);
       mostrarDatosEnLista(users);
+      formulario.reset();
       hideLoadingPost();
       showSuccess();
     } catch (error) {
