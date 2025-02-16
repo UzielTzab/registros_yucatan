@@ -53,11 +53,11 @@ document.addEventListener("DOMContentLoaded", () => {
     errorModal.show();
   }
 
-  // Cargar localidades y usuarios al inicio
+  // Cargar municipios y usuarios al inicio
   showLoading();
-  GetAllLocalities(URL)
+  GetAllMunicipalities(URL)
     .then((data) => {
-      localities = data;
+      municipalities = data;
       return GetAllUsers(URL);
     })
     .then((data) => {
@@ -71,21 +71,23 @@ document.addEventListener("DOMContentLoaded", () => {
       showError();
     });
 
-  localidadSelect.addEventListener("change", async (e) => {
+  municipioSelect.addEventListener("change", async (e) => {
     const value = e.target.value;
-    const locality = localities.find((locality) => locality.nombre === value);
+    const municipality = municipalities.find(
+      (municipality) => municipality.nombre === value
+    );
 
-    if (locality) {
-      const localityId = locality.id;
-      municipioSelect.innerHTML = "";
+    if (municipality) {
+      const municipalityId = municipality.id;
+      localidadSelect.innerHTML = "";
 
       try {
-        municipalities = await GetMunicipalitiesPerLocality(URL, localityId);
-        municipalities.forEach((locality) => {
+        localities = await GetLocalitiesPerMunicipality(URL, municipalityId);
+        localities.forEach((locality) => {
           const newOptionCreated = document.createElement("option");
           newOptionCreated.value = locality.nombre;
           newOptionCreated.textContent = locality.nombre;
-          municipioSelect.appendChild(newOptionCreated);
+          localidadSelect.appendChild(newOptionCreated);
         });
       } catch (error) {
         console.error(error);
@@ -93,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
         showError();
       }
     } else {
-      console.error("Localidad no encontrada");
+      console.error("Municipio no encontrado");
     }
   });
 
@@ -119,22 +121,22 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// Obtener las localidades
-async function GetAllLocalities(URL) {
-  URL = `${URL}/localidades`;
+// Obtener los municipios
+async function GetAllMunicipalities(URL) {
+  URL = `${URL}/municipios`;
   try {
     const response = await fetch(URL);
     if (!response.ok) {
-      throw new Error("Fallo en la obtención de localidades");
+      throw new Error("Fallo en la obtención de municipios");
     }
     const data = await response.json();
     if (data) {
-      const localitiesSelect = document.getElementById("localidad");
-      data.forEach((locality) => {
+      const municipalitiesSelect = document.getElementById("municipio");
+      data.forEach((municipality) => {
         const newOptionCreated = document.createElement("option");
-        newOptionCreated.value = locality.nombre;
-        newOptionCreated.textContent = locality.nombre;
-        localitiesSelect.appendChild(newOptionCreated);
+        newOptionCreated.value = municipality.nombre;
+        newOptionCreated.textContent = municipality.nombre;
+        municipalitiesSelect.appendChild(newOptionCreated);
       });
       return data;
     }
@@ -144,22 +146,22 @@ async function GetAllLocalities(URL) {
   }
 }
 
-// Obtener los municipios de cada localidad
-async function GetMunicipalitiesPerLocality(URL, localityId) {
-  URL = `${URL}/municipios`;
+// Obtener las localidades de cada municipio
+async function GetLocalitiesPerMunicipality(URL, municipalityId) {
+  URL = `${URL}/localidades`;
   try {
     const response = await fetch(URL);
     if (!response.ok) {
       throw new Error(
-        `Fallo al obtener los municipios de la localidad: ${localityId}`
+        `Fallo al obtener las localidades del municipio: ${municipalityId}`
       );
     }
     const data = await response.json();
     if (data) {
-      const filteredMunicipalities = data.filter(
-        (municipio) => municipio.id_localidad === localityId
+      const filteredLocalities = data.filter(
+        (locality) => locality.id_municipio === municipalityId
       );
-      return filteredMunicipalities;
+      return filteredLocalities;
     }
   } catch (error) {
     console.error(error);
