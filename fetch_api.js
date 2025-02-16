@@ -1,0 +1,249 @@
+document.addEventListener("DOMContentLoaded", () => {
+  const URL = "https://apiflowershop.onrender.com/api";
+  var localities = [];
+  var municipalities = [];
+  var users = [];
+
+  const formulario = document.getElementById("formulario-registro");
+  const localidadSelect = document.getElementById("localidad");
+  const municipioSelect = document.getElementById("municipio");
+  const listaRegistros = document.getElementById("lista");
+
+  // Modales de Bootstrap
+  const loadingModal = new bootstrap.Modal(
+    document.getElementById("loadingModal")
+  );
+
+  const loadingModalPost = new bootstrap.Modal(
+    document.getElementById("loadingModalPost")
+  );
+
+  const successModal = new bootstrap.Modal(
+    document.getElementById("successModal")
+  );
+  const errorModal = new bootstrap.Modal(document.getElementById("errorModal"));
+
+  // Función para mostrar el modal de loading post
+  function showLoadingPost() {
+    loadingModalPost.show();
+  }
+
+  // Función para ocultar el modal de loading post
+  function hideLoadingPost() {
+    loadingModalPost.hide();
+  }
+
+  // Función para mostrar el modal de loading
+  function showLoading() {
+    loadingModal.show();
+  }
+
+  // Función para ocultar el modal de loading
+  function hideLoading() {
+    loadingModal.hide();
+  }
+
+  // Función para mostrar el modal de éxito
+  function showSuccess() {
+    successModal.show();
+  }
+
+  // Función para mostrar el modal de error
+  function showError() {
+    errorModal.show();
+  }
+
+  // Cargar localidades y usuarios al inicio
+  showLoading();
+  GetAllLocalities(URL)
+    .then((data) => {
+      localities = data;
+      return GetAllUsers(URL);
+    })
+    .then((data) => {
+      users = data;
+      mostrarDatosEnLista(users);
+      hideLoading();
+    })
+    .catch((error) => {
+      console.error(error);
+      hideLoading();
+      showError();
+    });
+
+  localidadSelect.addEventListener("change", async (e) => {
+    const value = e.target.value;
+    const locality = localities.find((locality) => locality.nombre === value);
+
+    if (locality) {
+      const localityId = locality.id;
+      municipioSelect.innerHTML = "";
+
+      try {
+        municipalities = await GetMunicipalitiesPerLocality(URL, localityId);
+        municipalities.forEach((locality) => {
+          const newOptionCreated = document.createElement("option");
+          newOptionCreated.value = locality.nombre;
+          newOptionCreated.textContent = locality.nombre;
+          municipioSelect.appendChild(newOptionCreated);
+        });
+      } catch (error) {
+        console.error(error);
+        hideLoading();
+        showError();
+      }
+    } else {
+      console.error("Localidad no encontrada");
+    }
+  });
+
+  formulario.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(formulario);
+    const data = Object.fromEntries(formData.entries());
+
+    showLoadingPost();
+    try {
+      await PostUserData(URL, data);
+      users = await GetAllUsers(URL);
+      mostrarDatosEnLista(users);
+      hideLoadingPost();
+      showSuccess();
+    } catch (error) {
+      console.error(error);
+      hideLoadingPost();
+      showError();
+    }
+  });
+});
+
+// Obtener las localidades
+async function GetAllLocalities(URL) {
+  URL = `${URL}/localidades`;
+  try {
+    const response = await fetch(URL);
+    if (!response.ok) {
+      throw new Error("Fallo en la obtención de localidades");
+    }
+    const data = await response.json();
+    if (data) {
+      const localitiesSelect = document.getElementById("localidad");
+      data.forEach((locality) => {
+        const newOptionCreated = document.createElement("option");
+        newOptionCreated.value = locality.nombre;
+        newOptionCreated.textContent = locality.nombre;
+        localitiesSelect.appendChild(newOptionCreated);
+      });
+      return data;
+    }
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+// Obtener los municipios de cada localidad
+async function GetMunicipalitiesPerLocality(URL, localityId) {
+  URL = `${URL}/municipios`;
+  try {
+    const response = await fetch(URL);
+    if (!response.ok) {
+      throw new Error(
+        `Fallo al obtener los municipios de la localidad: ${localityId}`
+      );
+    }
+    const data = await response.json();
+    if (data) {
+      const filteredMunicipalities = data.filter(
+        (municipio) => municipio.id_localidad === localityId
+      );
+      return filteredMunicipalities;
+    }
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+// Insertar un nuevo usuario
+async function PostUserData(URL, data) {
+  URL = `${URL}/usuarios`;
+  try {
+    const response = await fetch(URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error("Fallo al intentar insertar un registro de usuario");
+    }
+    const result = await response.json();
+    console.log("Datos enviados con éxito ", result);
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+// Obtener todos los usuarios
+async function GetAllUsers(URL) {
+  URL = `${URL}/usuarios`;
+  try {
+    const response = await fetch(URL);
+    if (!response.ok) {
+      throw new Error("Fallo en la obtención de los usuarios");
+    }
+    const data = await response.json();
+    if (data) {
+      return data;
+    }
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+// Función para mostrar los datos en la lista de registros
+function mostrarDatosEnLista(data) {
+  const listaRegistros = document.getElementById("lista");
+  listaRegistros.innerHTML = "";
+
+  // Invertir el array de datos
+  const reversedData = data.slice().reverse();
+
+  reversedData.forEach((user) => {
+    const nuevoRegistro = document.createElement("li");
+    nuevoRegistro.className =
+      "list-group-item d-flex justify-content-between align-items-start mb-2";
+
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "ms-2 me-auto";
+
+    const nameDiv = document.createElement("div");
+    nameDiv.className = "fw-bold";
+    nameDiv.textContent = `${user.nombre} ${user.apellidos}`;
+
+    const addressDiv = document.createElement("div");
+    addressDiv.className = "text-muted small";
+    addressDiv.textContent = user.direccion;
+
+    const locationDiv = document.createElement("div");
+    locationDiv.className = "small";
+    locationDiv.innerHTML = `<i class="bi bi-geo-alt-fill text-primary"></i> ${user.localidad}, ${user.municipio}`;
+
+    contentDiv.appendChild(nameDiv);
+    contentDiv.appendChild(addressDiv);
+    contentDiv.appendChild(locationDiv);
+
+    const badgeDiv = document.createElement("span");
+    badgeDiv.className = "badge bg-primary rounded-pill";
+    badgeDiv.textContent = user.id;
+
+    nuevoRegistro.appendChild(contentDiv);
+    nuevoRegistro.appendChild(badgeDiv);
+
+    listaRegistros.appendChild(nuevoRegistro);
+  });
+}
